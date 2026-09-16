@@ -1,0 +1,83 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --brand-primary: #4f46e5;
+    --brand-accent: #0ea5e9;
+  }
+
+  * {
+    @apply border-ink-200;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-ink-50 font-sans text-ink-900 antialiased;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+
+  h1, h2, h3, h4, h5 {
+    @apply font-display tracking-tight;
+  }
+
+  /* Focus ring that respects the active tenant's brand colour. */
+  :focus-visible {
+    outline: 2px solid var(--brand-primary);
+    outline-offset: 2px;
+  }
+
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { @apply bg-transparent; }
+  ::-webkit-scrollbar-thumb { @apply rounded-full bg-ink-300; }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-ink-400; }
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl border border-ink-200/80 bg-white shadow-card;
+  }
+
+  .input-base {
+    @apply w-full rounded-xl border border-ink-200 bg-white px-3.5 py-2.5 text-sm text-ink-900
+           placeholder:text-ink-400 transition
+           focus:border-[var(--brand-primary)] focus:outline-none focus:ring-4
+           disabled:cursor-not-allowed disabled:bg-ink-50 disabled:text-ink-400;
+  }
+
+  /* Tailwind cannot apply an opacity modifier to a CSS variable inside @apply,
+     so the focus ring colour is written as plain CSS using colour-mix. */
+  .input-base:focus {
+    --tw-ring-color: color-mix(in srgb, var(--brand-primary) 12%, transparent);
+  }
+
+  .label-base {
+    @apply mb-1.5 block text-sm font-medium text-ink-700;
+  }
+
+  .skeleton {
+    @apply relative overflow-hidden rounded-lg bg-ink-100;
+  }
+
+  .skeleton::after {
+    @apply absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/70 to-transparent;
+    content: '';
+    animation: shimmer 1.6s infinite;
+  }
+
+  @keyframes shimmer {
+    100% { transform: translateX(100%); }
+  }
+
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+}
