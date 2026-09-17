@@ -3,6 +3,31 @@ import { paginationSchema, objectIdString } from '../utils/query';
 
 const optionalId = z.union([objectIdString, z.literal('')]).optional();
 
+/**
+ * Accepts either a calendar date (`YYYY-MM-DD`, what `<input type="date">`
+ * produces) or a full ISO-8601 timestamp, and normalises both to an ISO string.
+ *
+ * A bare `YYYY-MM-DD` is anchored at UTC midnight rather than local midnight on
+ * purpose: the calendar grid buckets events by the UTC date portion of the
+ * stored timestamp, so anchoring locally would make an event created in a
+ * positive-offset timezone (e.g. IST) render on the previous day.
+ */
+const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;
+
+const dateTimeString = (label: string) =>
+  z
+    .string({
+      required_error: `${label} is required`,
+      invalid_type_error: `${label} must be a date`,
+    })
+    .trim()
+    .min(1, `${label} is required`)
+    .transform((v) => (DATE_ONLY.test(v) ? `${v}T00:00:00.000Z` : v))
+    .refine((v) => !Number.isNaN(Date.parse(v)), {
+      message: `${label} must be a valid date (YYYY-MM-DD or an ISO timestamp)`,
+    })
+    .transform((v) => new Date(v).toISOString());
+
 export const createAnnouncementSchema = z.object({
   title: z.string().trim().min(3).max(160),
   body: z.string().trim().min(1).max(8000),
@@ -48,21 +73,61 @@ export const notificationQuerySchema = paginationSchema.extend({
   type: z.string().optional(),
 });
 
-export const createEventSchema = z.object({
-  title: z.string().trim().min(2).max(160),
-  description: z.string().trim().max(2000).optional(),
-  type: z.enum(['CLASS', 'EXAM', 'ASSIGNMENT', 'FOLLOW_UP', 'FEE_DUE', 'HOLIDAY', 'EVENT', 'MEETING']).default('EVENT'),
-  startAt: z.string().datetime(),
-  endAt: z.string().datetime(),
-  allDay: z.boolean().default(false),
-  location: z.string().trim().max(160).optional(),
-  courseId: optionalId,
-  batchId: optionalId,
-  audience: z.enum(['ALL', 'STUDENTS', 'PARENTS', 'TEACHERS', 'STAFF']).default('ALL'),
-  color: z.string().trim().max(20).optional(),
-});
+export const createEventSchema = z
+  .object({
+    title: z
+      .string({ required_error: 'Title is required' })
+      .trim()
+      .min(2, 'Title must be at least 2 characters')
+      .max(160, 'Title must be 160 characters or fewer'),
+    description: z
+      .string()
+      .trim()
+      .max(2000, 'Description must be 2000 characters or fewer')
+      .optional()
+      .or(z.literal('').transform(() => undefined)),
+    type: z
+      .enum(['CLASS', 'EXAM', 'ASSIGNMENT', 'FOLLOW_UP', 'FEE_DUE', 'HOLIDAY', 'EVENT', 'MEETING'], {
+        errorMap: () => ({ message: 'Choose a valid event type' }),
+      })
+      .default('EVENT'),
+    startAt: dateTimeString('Start date'),
+    /**
+     * Optional: a single-day event only needs a start. When omitted the
+     * controller derives the end from the start, which keeps the required
+     * `endAt` on the Mongoose model satisfied without forcing the user to
+     * enter a redundant value.
+     */
+    endAt: dateTimeString('End date').optional(),
+    allDay: z.boolean().default(false),
+    location: z
+      .string()
+      .trim()
+      .max(160, 'Location must be 160 characters or fewer')
+      .optional()
+      .or(z.literal('').transform(() => undefined)),
+    courseId: optionalId,
+    batchId: optionalId,
+    audience: z
+      .enum(['ALL', 'STUDENTS', 'PARENTS', 'TEACHERS', 'STAFF'], {
+        errorMap: () => ({ message: 'Choose a valid audience' }),
+      })
+      .default('ALL'),
+    color: z.string().trim().max(20, 'Color must be 20 characters or fewer').optional(),
+  })
+  // Report the ordering problem on the field the user must actually change.
+  .refine((v) => !v.endAt || new Date(v.endAt).getTime() >= new Date(v.startAt).getTime(), {
+    message: 'End date must be on or after the start date',
+    path: ['endAt'],
+  });
 
-export const updateEventSchema = createEventSchema.partial();
+export const updateEventSchema = createEventSchema
+  .innerType()
+  .partial()
+  .refine(
+    (v) => !v.endAt || !v.startAt || new Date(v.endAt).getTime() >= new Date(v.startAt).getTime(),
+    { message: 'End date must be on or after the start date', path: ['endAt'] },
+  );
 
 export const calendarQuerySchema = z.object({
   from: z.string(),

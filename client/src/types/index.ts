@@ -424,6 +424,10 @@ export interface NotificationItem {
   createdAt: string;
 }
 
+/**
+ * A stored calendar event, as returned by the create/update endpoints
+ * (`POST|PATCH /comm/calendar/events`), which serialise the raw Mongoose doc.
+ */
 export interface CalendarEventItem {
   _id: string;
   title: string;
@@ -434,6 +438,31 @@ export interface CalendarEventItem {
   allDay: boolean;
   location?: string;
   color?: string;
+}
+
+/**
+ * A row from the aggregated feed (`GET /comm/calendar`), which merges stored
+ * events with classes, exams, assignments and fee dues into one shape.
+ *
+ * Note the deliberately different field names: the feed emits `id`/`start`/`end`,
+ * NOT `_id`/`startAt`/`endAt`. Mixing the two is what previously left the month
+ * grid blank.
+ */
+export interface CalendarFeedItem {
+  id: string;
+  type: string;
+  title: string;
+  start: string;
+  end: string;
+  color?: string;
+  meta?: {
+    room?: string;
+    batch?: string;
+    location?: string;
+    description?: string;
+    amount?: number;
+    examType?: string;
+  };
 }
 
 export interface DocumentFile {

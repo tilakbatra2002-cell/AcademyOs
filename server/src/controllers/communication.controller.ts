@@ -214,15 +214,25 @@ export const calendar = asyncHandler(async (req: Request, res: Response) => {
 export const createEvent = asyncHandler(async (req: Request, res: Response) => {
   const orgId = requireOrg(req);
   const auth = requireAuth(req);
-  if (dayjs(req.body.endAt).isBefore(req.body.startAt)) {
-    throw ApiError.validation('End time must be after the start time', { endAt: 'Must be after start' });
+  const startAt = new Date(req.body.startAt);
+  // `endAt` is optional for the caller but required by the model: a single-day
+  // event ends when it starts (all-day events run to the end of that day).
+  const endAt = req.body.endAt
+    ? new Date(req.body.endAt)
+    : req.body.allDay
+      ? dayjs(startAt).endOf('day').toDate()
+      : startAt;
+  if (dayjs(endAt).isBefore(startAt)) {
+    throw ApiError.validation('Please correct the highlighted fields', {
+      endAt: 'End date must be on or after the start date',
+    });
   }
   const event = await CalendarEvent.create({
     ...req.body,
     courseId: req.body.courseId || undefined,
     batchId: req.body.batchId || undefined,
-    startAt: new Date(req.body.startAt),
-    endAt: new Date(req.body.endAt),
+    startAt,
+    endAt,
     organizationId: orgId,
     createdBy: auth.userId,
   });
@@ -231,10 +241,36 @@ export const createEvent = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const updateEvent = asyncHandler(async (req: Request, res: Response) => {
+  const orgId = requireOrg(req);
   const body = { ...req.body };
   if (body.startAt) body.startAt = new Date(body.startAt);
   if (body.endAt) body.endAt = new Date(body.endAt);
-  const e = await updateScoped(CalendarEvent, req.params.id, requireOrg(req), body, 'Event not found');
+
+  // When only one side of the range is edited, reconcile against the stored
+  // value so a partial update cannot leave the event ending before it starts.
+  if (body.startAt || body.endAt) {
+    const current = await CalendarEvent.findOne({ _id: req.params.id, organizationId: orgId })
+      .select('startAt endAt')
+      .lean();
+    if (current) {
+      // Moving only the start drags the end along, preserving the original
+      // duration. Without this, shifting a single-day event would fail against
+      // its own (auto-derived) end date.
+      if (body.startAt && !body.endAt && current.endAt) {
+        const duration = dayjs(current.endAt).diff(current.startAt);
+        body.endAt = dayjs(body.startAt).add(duration, 'millisecond').toDate();
+      }
+      const nextStart = body.startAt ?? current.startAt;
+      const nextEnd = body.endAt ?? current.endAt;
+      if (nextEnd && dayjs(nextEnd).isBefore(nextStart)) {
+        throw ApiError.validation('Please correct the highlighted fields', {
+          endAt: 'End date must be on or after the start date',
+        });
+      }
+    }
+  }
+
+  const e = await updateScoped(CalendarEvent, req.params.id, orgId, body, 'Event not found');
   return ok(res, e);
 });
 
