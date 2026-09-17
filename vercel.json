@@ -1,12 +1,26 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "npm --prefix client ci",
+  "installCommand": "npm install && npm --prefix client ci",
   "buildCommand": "npm --prefix client run build",
   "outputDirectory": "client/dist",
-  "rewrites": [
-    {
-      "source": "/((?!api/).*)",
-      "destination": "/index.html"
+  "functions": {
+    "api/index.ts": {
+      "memory": 1024,
+      "maxDuration": 30
+    },
+    "api/cron.ts": {
+      "memory": 1024,
+      "maxDuration": 60
     }
+  },
+  "crons": [
+    {
+      "path": "/api/cron",
+      "schedule": "0 2 * * *"
+    }
+  ],
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/index" },
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }

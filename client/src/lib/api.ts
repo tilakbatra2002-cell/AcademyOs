@@ -1,23 +1,26 @@
 /**
  * Single entry point for every network call.
  *
- * - The backend base URL comes from the `VITE_API_URL` build-time env var, so
- *   the deployed frontend can talk to an Express API hosted on a different
- *   origin. Never a hardcoded localhost/127.0.0.1 production base.
- *   When it is empty (local dev) requests stay relative and the Vite dev-server
- *   proxy forwards /api -> the local API.
+ * - Requests are SAME-ORIGIN by default. The SPA and the Express API ship from
+ *   one Vercel project (the API runs as a serverless function under /api/*),
+ *   so a relative `/api/...` URL is correct in production and the auth cookies
+ *   stay first-party. `VITE_API_URL` is therefore optional and normally unset.
  * - `credentials: 'include'` so the httpOnly JWT cookies travel with requests.
  *   No token is ever read or written from JS/localStorage.
  * - Unwraps the backend envelope { success, data } / { success, error }.
  */
 
 /**
- * Base origin of the Express API, e.g. https://api.example.com
+ * Optional override for the API origin, e.g. https://api.example.com
  *
- * Set `VITE_API_URL` in the Vercel project settings. A trailing slash is
- * tolerated and stripped so `${API_BASE}/api/...` never doubles up. If the var
- * is unset we fall back to a same-origin relative call, which is what local
- * development (Vite proxy) and a same-origin reverse proxy both want.
+ * Leave `VITE_API_URL` UNSET for the standard single-project deployment and
+ * for local development (the Vite dev server proxies /api -> 127.0.0.1:4000).
+ * Only set it when the API is genuinely hosted on another domain; in that case
+ * the backend also needs CLIENT_URL/COOKIE_SAMESITE=none configured. A trailing
+ * slash is tolerated and stripped so `${API_BASE}/api/...` never doubles up.
+ *
+ * Note: it must never be set to the frontend's own origin — that is harmless
+ * here (it resolves to the same URL) but misleading, so prefer leaving it blank.
  */
 export const API_BASE = (import.meta.env.VITE_API_URL ?? '').trim().replace(/\/+$/, '');
 

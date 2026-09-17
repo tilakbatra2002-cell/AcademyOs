@@ -102,3 +102,6 @@ mongo-data/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Local replica of the Vercel function build (verification only)
+.vbuild/

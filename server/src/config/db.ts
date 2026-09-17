@@ -8,7 +8,9 @@ export async function connectDB(uri = env.MONGO_URI): Promise<typeof mongoose> {
   mongoose.set('strictQuery', true);
   if (mongoose.connection.readyState === 1) return mongoose;
   await mongoose.connect(uri, {
-    maxPoolSize: 20,
+    // Small pool on serverless (many instances x large pool exhausts Atlas),
+    // larger pool on an always-on host. See env.MONGO_MAX_POOL_SIZE.
+    maxPoolSize: env.MONGO_MAX_POOL_SIZE,
     serverSelectionTimeoutMS: 10000,
   });
   logger.info(`MongoDB connected: ${mongoose.connection.name}`);

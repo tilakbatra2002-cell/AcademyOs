@@ -229,3 +229,35 @@ PORT=4000
 ```
 
 Tests use a separate `academyos_test` database and wipe it between runs.
+
+---
+
+## Deployment (Vercel, single project)
+
+AcademyOS ships as **one Vercel project on one origin**: the Vite SPA is served
+as static files and the whole Express app runs as a Vercel Function.
+
+```
+https://<your-domain>/          -> client/dist   (static SPA + SPA fallback)
+https://<your-domain>/api/*     -> api/index.ts  (Express, serverless)
+https://<your-domain>/api/cron  -> api/cron.ts   (Vercel Cron, Bearer-protected)
+```
+
+Because both halves share an origin, the browser calls **relative `/api/...`**
+URLs and the JWT cookies stay **first-party** (`HttpOnly; Secure; SameSite=Lax`) —
+no CORS preflight and no third-party-cookie/ITP issues.
+
+Two settings matter most:
+
+* **Root Directory must be `.`** (the repo root), not `client`. With `client` as
+  the root Vercel never sees `api/`, and every `/api/*` request returns
+  `x-vercel-error: NOT_FOUND`.
+* **`VITE_API_URL` must be left empty.** Setting it re-introduces a cross-origin
+  setup that this architecture deliberately removes.
+
+Required production env vars: `MONGO_URI`, `JWT_SECRET`, `NODE_ENV=production`,
+`CRON_SECRET`. Uploads need `STORAGE_DRIVER=s3` (or `cloudinary`) because a
+Function's local disk is ephemeral.
+
+Full instructions, verification commands and the serverless trade-offs are in
+**[DEPLOYMENT.md](./DEPLOYMENT.md)**.

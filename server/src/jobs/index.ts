@@ -157,4 +157,35 @@ export function stopJobs(): void {
   timers.length = 0;
 }
 
+/**
+ * Runs every scheduled job exactly once, sequentially, and reports what
+ * happened. This is what a cron driver calls in environments that cannot keep
+ * a Node process alive (Vercel serverless): the same job functions used by the
+ * in-process scheduler above, just triggered externally instead of by a timer.
+ *
+ * Each job is isolated so that one failure cannot prevent the others running.
+ */
+export async function runScheduledJobs(): Promise<
+  Array<{ job: string; ok: boolean; error?: string }>
+> {
+  const jobs: Array<[string, () => Promise<void>]> = [
+    ['overdueFees', overdueJob],
+    ['trialExpiry', trialExpiryJob],
+    ['reminders', reminderJob],
+    ['closeStaleClasses', closeStaleClassesJob],
+  ];
+
+  const results: Array<{ job: string; ok: boolean; error?: string }> = [];
+  for (const [name, fn] of jobs) {
+    try {
+      await fn();
+      results.push({ job: name, ok: true });
+    } catch (err) {
+      logger.error(`Scheduled job ${name} failed`, err);
+      results.push({ job: name, ok: false, error: err instanceof Error ? err.message : String(err) });
+    }
+  }
+  return results;
+}
+
 export const __jobsForTesting = { overdueJob, trialExpiryJob, reminderJob, closeStaleClassesJob };

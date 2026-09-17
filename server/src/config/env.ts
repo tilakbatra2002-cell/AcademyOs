@@ -12,6 +12,18 @@ export const env = {
   NODE_ENV: process.env.NODE_ENV || 'development',
   PORT: parseInt(process.env.PORT || '4000', 10),
   MONGO_URI: process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/academyos',
+  /**
+   * Mongo connection-pool size per process.
+   *
+   * On an always-on server a larger pool is good. In a serverless deployment
+   * every warm Function instance keeps its own pool, so a high value multiplied
+   * by many instances can exhaust the cluster's connection limit (~500 on Atlas
+   * M0/M2). Default to a small pool when running on Vercel.
+   */
+  MONGO_MAX_POOL_SIZE: parseInt(
+    process.env.MONGO_MAX_POOL_SIZE || (process.env.VERCEL ? '5' : '20'),
+    10,
+  ),
   JWT_SECRET: process.env.JWT_SECRET || 'dev-insecure-secret-change-me',
   JWT_ACCESS_TTL: process.env.JWT_ACCESS_TTL || '2h',
   JWT_REFRESH_TTL: process.env.JWT_REFRESH_TTL || '7d',
