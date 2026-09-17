@@ -59,6 +59,59 @@ export const listAnnouncements = asyncHandler(async (req: Request, res: Response
   return paginated(res, withRead, total, q.page, q.limit);
 });
 
+/**
+ * Single announcement, used by the announcement detail page that a notification
+ * opens.
+ *
+ * Scoping mirrors listAnnouncements exactly so the detail view can never expose
+ * something the list would hide:
+ *  - always filtered by the caller's organizationId (from the session, never
+ *    the request), so one academy cannot read another's announcement;
+ *  - portal roles (STUDENT/PARENT/TEACHER) additionally only see PUBLISHED,
+ *    unexpired announcements actually addressed to them.
+ * Anything else is a 404 rather than a 403, so the endpoint does not confirm
+ * that an id exists in another tenant.
+ */
+export const getAnnouncement = asyncHandler(async (req: Request, res: Response) => {
+  const auth = requireAuth(req);
+  const orgId = requireOrg(req);
+
+  const filter: Record<string, unknown> = { _id: req.params.id, organizationId: orgId };
+
+  if (['STUDENT', 'PARENT', 'TEACHER'].includes(auth.role)) {
+    filter.status = 'PUBLISHED';
+    filter.$or = [
+      { audience: 'ALL' },
+      { audience: auth.role === 'STUDENT' ? 'STUDENTS' : auth.role === 'PARENT' ? 'PARENTS' : 'TEACHERS' },
+      ...(auth.role === 'STUDENT' && auth.studentId
+        ? [{
+            audience: 'COURSE',
+            courseId: {
+              $in: (await CourseEnrollment.find({ organizationId: orgId, studentId: auth.studentId })
+                .select('courseId').lean()).map((e) => e.courseId),
+            },
+          }]
+        : []),
+    ];
+    filter.$and = [{ $or: [{ expiresAt: { $exists: false } }, { expiresAt: null }, { expiresAt: { $gte: new Date() } }] }];
+  }
+
+  const doc = await Announcement.findOne(filter)
+    .populate('courseId', 'title')
+    .populate('batchId', 'name')
+    .lean();
+
+  if (!doc) throw ApiError.notFound('Announcement not found');
+
+  const row = doc as unknown as { readBy?: Types.ObjectId[] };
+  return ok(res, {
+    ...doc,
+    isRead: (row.readBy ?? []).some((u) => String(u) === String(auth.userId)),
+    readCount: (row.readBy ?? []).length,
+    readBy: undefined,
+  });
+});
+
 export const createAnnouncement = asyncHandler(async (req: Request, res: Response) => {
   const orgId = requireOrg(req);
   const auth = requireAuth(req);

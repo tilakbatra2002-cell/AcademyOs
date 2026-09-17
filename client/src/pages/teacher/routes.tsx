@@ -14,6 +14,7 @@ import { MaterialsPage } from '@/pages/admin/Materials';
 import { TeacherAnnouncements } from './Announcements';
 import { ProfilePage } from '@/pages/shared/Profile';
 import { NotFoundInline } from '@/pages/shared/NotFoundInline';
+import { AnnouncementDetailPage } from '@/pages/AnnouncementDetail';
 
 const SECTIONS: NavSection[] = [
   {
@@ -55,6 +56,7 @@ export function TeacherRoutes() {
         <Route path="assignments" element={<AssignmentsPage />} />
         <Route path="materials" element={<MaterialsPage />} />
         <Route path="announcements" element={<TeacherAnnouncements />} />
+        <Route path="announcements/:id" element={<AnnouncementDetailPage portal="teacher" />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="*" element={<NotFoundInline />} />
       </Route>

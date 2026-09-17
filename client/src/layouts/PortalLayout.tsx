@@ -1,4 +1,4 @@
-import { ComponentType, ReactNode, isValidElement, useState, useEffect, useRef } from 'react';
+import { ComponentType, ReactNode, Suspense, isValidElement, useState, useEffect, useRef } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -7,6 +7,8 @@ import {
 import { useAuth } from '@/lib/auth';
 import { api } from '@/lib/api';
 import { cn, titleCase, fromNow } from '@/lib/utils';
+import { notificationPath } from '@/lib/notificationPath';
+import { RouteProgress } from '@/components/AppPreloader';
 import { Avatar, Button, Spinner } from '@/components/ui';
 import type { NotificationItem, SearchResult, PortalKey } from '@/types';
 
@@ -167,13 +169,21 @@ export function PortalLayout({ portal, sections, portalLabel, showSearch }: Port
 
           {isTenantPortal && (
             <div className="flex items-center gap-1.5">
-              <NotificationBell />
+              <NotificationBell portal={portal} />
             </div>
           )}
         </header>
 
         <main className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-8">
-          <Outlet />
+          {/*
+            Page-level Suspense boundary. Lazy page chunks resolve here, so the
+            sidebar, header and notification bell stay mounted and interactive
+            during a transition — only the content region is pending, and the
+            indicator is a non-blocking top bar rather than an overlay.
+          */}
+          <Suspense fallback={<RouteProgress />}>
+            <Outlet />
+          </Suspense>
         </main>
       </div>
     </div>
@@ -324,7 +334,7 @@ function GlobalSearch({ portal }: { portal: PortalKey }) {
 
 /* ----------------------------- Notification bell --------------------------- */
 
-function NotificationBell() {
+function NotificationBell({ portal }: { portal: PortalKey }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const qc = useQueryClient();
@@ -390,7 +400,11 @@ function NotificationBell() {
                 key={n._id}
                 onClick={() => {
                   if (!n.isRead) void markRead([n._id]);
-                  if (n.link) navigate(n.link);
+                  // Resolve against the active portal: announcement links are
+                  // stored portal-less because one announcement reaches several
+                  // portals at once. Navigating to the raw value 404'd.
+                  const target = notificationPath(n, portal);
+                  if (target) navigate(target);
                   setOpen(false);
                 }}
                 className={cn(

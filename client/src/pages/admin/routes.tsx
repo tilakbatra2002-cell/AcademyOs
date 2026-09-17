@@ -1,3 +1,4 @@
+import { lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, UserPlus, GraduationCap, BookOpen, CalendarDays, ClipboardCheck,
@@ -8,7 +9,6 @@ import { PortalLayout, NavSection } from '@/layouts/PortalLayout';
 import { AdminDashboard } from './Dashboard';
 import { LeadsPage } from './Leads';
 import { LeadDetailPage } from './LeadDetail';
-import { PipelinePage } from './Pipeline';
 import { FollowUpsPage } from './FollowUps';
 import { AdmissionsPage } from './Admissions';
 import { StudentsPage } from './Students';
@@ -17,26 +17,35 @@ import { ParentsPage } from './Parents';
 import { TeachersPage } from './Teachers';
 import { StaffPage } from './Staff';
 import { CoursesPage } from './Courses';
-import { CourseBuilderPage } from './CourseBuilder';
 import { SubjectsPage } from './Subjects';
-import { VideosPage } from './Videos';
 import { MaterialsPage } from './Materials';
 import { BatchesPage } from './Batches';
-import { TimetablePage } from './Timetable';
 import { AttendancePage } from './Attendance';
 import { ExamsPage } from './Exams';
-import { ResultsPage } from './Results';
-import { AssignmentsPage } from './Assignments';
 import { FeePlansPage } from './FeePlans';
 import { PaymentsPage } from './Payments';
 import { InvoicesPage } from './Invoices';
-import { ReportsPage } from './Reports';
 import { AnnouncementsPage } from './Announcements';
-import { CalendarPage } from './Calendar';
 import { DocumentsPage } from './Documents';
 import { SettingsPage } from './Settings';
 import { ProfilePage } from '@/pages/shared/Profile';
 import { NotFoundInline } from '@/pages/shared/NotFoundInline';
+import { AnnouncementDetailPage } from '@/pages/AnnouncementDetail';
+
+/**
+ * Heavier admin pages (charts, builders, calendars) are code-split so they are
+ * fetched only when visited. Their Suspense boundary lives in PortalLayout, so
+ * the shell stays interactive and only a slim top bar appears — and only if the
+ * chunk actually takes long enough to warrant it.
+ */
+const ReportsPage = lazy(() => import('./Reports').then((m) => ({ default: m.ReportsPage })));
+const CourseBuilderPage = lazy(() => import('./CourseBuilder').then((m) => ({ default: m.CourseBuilderPage })));
+const TimetablePage = lazy(() => import('./Timetable').then((m) => ({ default: m.TimetablePage })));
+const CalendarPage = lazy(() => import('./Calendar').then((m) => ({ default: m.CalendarPage })));
+const AssignmentsPage = lazy(() => import('./Assignments').then((m) => ({ default: m.AssignmentsPage })));
+const ResultsPage = lazy(() => import('./Results').then((m) => ({ default: m.ResultsPage })));
+const PipelinePage = lazy(() => import('./Pipeline').then((m) => ({ default: m.PipelinePage })));
+const VideosPage = lazy(() => import('./Videos').then((m) => ({ default: m.VideosPage })));
 
 const ICON = 'h-[18px] w-[18px]';
 
@@ -128,6 +137,7 @@ export function AdminRoutes() {
         <Route path="invoices" element={<InvoicesPage />} />
         <Route path="reports" element={<ReportsPage />} />
         <Route path="announcements" element={<AnnouncementsPage />} />
+        <Route path="announcements/:id" element={<AnnouncementDetailPage portal="admin" />} />
         <Route path="calendar" element={<CalendarPage />} />
         <Route path="documents" element={<DocumentsPage />} />
         <Route path="settings" element={<SettingsPage />} />

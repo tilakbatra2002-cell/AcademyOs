@@ -56,6 +56,10 @@ export async function publishAnnouncement(
       type: 'ANNOUNCEMENT' as const,
       title: announcement.title,
       message: 'A new announcement has been published.',
+      // Portal-less on purpose: one announcement reaches admins, teachers,
+      // students and parents at once, and each portal mounts its pages under a
+      // different prefix. The client resolves this against the signed-in portal
+      // (see client/src/lib/notificationPath.ts) and deep-links via entityId.
       link: '/announcements',
       entity: 'Announcement',
       entityId: String(announcement._id),

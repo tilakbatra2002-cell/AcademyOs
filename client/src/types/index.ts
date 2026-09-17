@@ -418,7 +418,18 @@ export interface NotificationItem {
   type: string;
   title: string;
   message: string;
+  /**
+   * Destination path stored by the backend. It may be portal-less (e.g.
+   * `/announcements`) because a single announcement is delivered to admins,
+   * teachers, students and parents at once, and each portal mounts its pages
+   * under a different prefix. Resolve it with `notificationPath()` rather than
+   * navigating to it directly.
+   */
   link?: string;
+  /** Source record type, e.g. `Announcement`. */
+  entity?: string;
+  /** Id of the source record, used to deep-link to its detail page. */
+  entityId?: string;
   isRead: boolean;
   priority: string;
   createdAt: string;

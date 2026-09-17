@@ -14,6 +14,7 @@ const router = Router();
 
 /* ------------------------------- Announcements ------------------------------- */
 router.get('/announcements', requirePermission('announcement:read'), validate({ query: announcementQuerySchema }), c.listAnnouncements);
+router.get('/announcements/:id', requirePermission('announcement:read'), validate({ params: idParamSchema }), c.getAnnouncement);
 router.post('/announcements', requirePermission('announcement:create'), validate({ body: createAnnouncementSchema }), c.createAnnouncement);
 router.patch('/announcements/:id', requirePermission('announcement:update'), validate({ params: idParamSchema, body: updateAnnouncementSchema }), c.updateAnnouncement);
 router.delete('/announcements/:id', requirePermission('announcement:delete'), validate({ params: idParamSchema }), c.deleteAnnouncement);

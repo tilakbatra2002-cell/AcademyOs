@@ -7,6 +7,7 @@ import { ParentChildren } from './Children';
 import { AnnouncementFeed } from '@/pages/teacher/Announcements';
 import { ProfilePage } from '@/pages/shared/Profile';
 import { NotFoundInline } from '@/pages/shared/NotFoundInline';
+import { AnnouncementDetailPage } from '@/pages/AnnouncementDetail';
 
 const SECTIONS: NavSection[] = [
   { items: [{ to: '/parent', label: 'Dashboard', icon: LayoutDashboard, end: true }] },
@@ -27,6 +28,7 @@ export function ParentRoutes() {
         <Route path="children" element={<ParentChildren />} />
         <Route path="children/:studentId" element={<ChildDetail />} />
         <Route path="announcements" element={<AnnouncementFeed title="Announcements" description="Notices from your child's academy." />} />
+        <Route path="announcements/:id" element={<AnnouncementDetailPage portal="parent" />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="*" element={<NotFoundInline />} />
       </Route>

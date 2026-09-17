@@ -74,6 +74,25 @@
     100% { transform: translateX(100%); }
   }
 
+  /* Indeterminate sweep used by the branded preloader and route progress bar. */
+  .animate-preloader-sweep {
+    animation: preloader-sweep 1.1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  }
+
+  @keyframes preloader-sweep {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(400%); }
+  }
+
+  /* Respect users who prefer reduced motion: hold a steady bar instead. */
+  @media (prefers-reduced-motion: reduce) {
+    .animate-preloader-sweep {
+      animation: none;
+      transform: none;
+      width: 100%;
+    }
+  }
+
   .scrollbar-none {
     scrollbar-width: none;
   }

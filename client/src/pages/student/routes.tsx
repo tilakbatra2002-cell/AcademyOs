@@ -12,6 +12,7 @@ import {
 import { AnnouncementFeed } from '@/pages/teacher/Announcements';
 import { ProfilePage } from '@/pages/shared/Profile';
 import { NotFoundInline } from '@/pages/shared/NotFoundInline';
+import { AnnouncementDetailPage } from '@/pages/AnnouncementDetail';
 
 const SECTIONS: NavSection[] = [
   { items: [{ to: '/student', label: 'Dashboard', icon: LayoutDashboard, end: true }] },
@@ -54,6 +55,7 @@ export function StudentRoutes() {
         <Route path="results" element={<StudentResults />} />
         <Route path="fees" element={<StudentFees />} />
         <Route path="announcements" element={<AnnouncementFeed title="Announcements" description="Notices from your academy." />} />
+        <Route path="announcements/:id" element={<AnnouncementDetailPage portal="student" />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="*" element={<NotFoundInline />} />
       </Route>
