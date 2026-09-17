@@ -199,7 +199,12 @@ const STUDENT_PERMS: Permission[] = [
 ];
 
 const PARENT_PERMS: Permission[] = [
-  'student:read', 'course:read', 'batch:read', 'class:read',
+  // NB: no 'student:read'. That permission unlocks the org-wide roster
+  // (GET /api/people/students), which would expose every classmate's name,
+  // e-mail and phone number to any signed-in parent. A parent's own children
+  // are served by /api/portal/me/children and
+  // /api/portal/me/children/:studentId/* , which verify the guardian link.
+  'course:read', 'batch:read', 'class:read',
   'attendance:read', 'exam:read', 'result:read', 'assignment:read',
   // Children's fees are served by /api/portal/me/children/:studentId/fees.
   'payment:self',

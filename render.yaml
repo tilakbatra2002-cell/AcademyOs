@@ -1,0 +1,45 @@
+# ---------------------------------------------------------------------------
+# AcademyOS API — Render blueprint
+#
+# Deploy: Render Dashboard -> New -> Blueprint -> point at this repository.
+# Render reads this file and provisions the service below.
+#
+# Secrets are deliberately NOT in this file. Every value marked `sync: false`
+# must be entered in the Render dashboard (or via `render env set`) so nothing
+# sensitive is ever committed to git.
+# ---------------------------------------------------------------------------
+services:
+  - type: web
+    name: academyos-api
+    runtime: node
+    plan: starter            # free tier cold-starts; starter keeps it warm
+    region: singapore        # closest to the India-based user base
+    rootDir: server
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "20"
+      # Vite/Vercel frontend origin — drives the CORS allowlist.
+      - key: CLIENT_URL
+        value: https://academyos.webamazee.com
+      # Cross-site cookies: the API and the SPA are on different domains.
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: COOKIE_SAMESITE
+        value: none
+      - key: STORAGE_DRIVER
+        value: local
+      - key: PAYMENT_PROVIDER
+        value: manual
+      - key: TRIAL_DAYS
+        value: "14"
+      # ---- set these in the dashboard, never in git ----
+      - key: MONGO_URI          # MongoDB Atlas SRV connection string
+        sync: false
+      - key: JWT_SECRET         # long random string
+        sync: false

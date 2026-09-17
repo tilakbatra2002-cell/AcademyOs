@@ -162,6 +162,31 @@ describe('RBAC: privilege escalation is blocked by the backend', () => {
     expect(res.status).toBe(200);
   });
 
+  /*
+   * Regression: PARENT previously held 'student:read', which unlocked the
+   * org-wide roster (GET /api/people/students) and every classmate's name,
+   * e-mail and phone number. A guardian must only ever reach their own
+   * children, via /api/portal/me/children*.
+   */
+  it('a parent cannot enumerate the organisation-wide student roster', async () => {
+    for (const url of ['/api/people/students', '/api/people/students/stats']) {
+      const res = await request(app).get(url).set('Cookie', parent);
+      expect(res.status, `${url} must be forbidden for a parent`).toBe(403);
+    }
+  });
+
+  it("a parent cannot open another student's full detail record", async () => {
+    const res = await request(app)
+      .get(`/api/people/students/${T.studentId}`)
+      .set('Cookie', parent);
+    expect(res.status).toBe(403);
+  });
+
+  it('a parent CAN still list their own children (control case)', async () => {
+    const res = await request(app).get('/api/portal/me/children').set('Cookie', parent);
+    expect(res.status).toBe(200);
+  });
+
   it("a parent CAN still read their child's fees through the portal (control case)", async () => {
     const res = await request(app)
       .get(`/api/portal/me/children/${T.studentId}/fees`)

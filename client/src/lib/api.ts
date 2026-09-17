@@ -1,12 +1,30 @@
 /**
  * Single entry point for every network call.
  *
- * - Always relative `/api/...` so the browser talks to the Vite proxy / same
- *   origin in production; never a hardcoded localhost:4000.
+ * - The backend base URL comes from the `VITE_API_URL` build-time env var, so
+ *   the deployed frontend can talk to an Express API hosted on a different
+ *   origin. Never a hardcoded localhost/127.0.0.1 production base.
+ *   When it is empty (local dev) requests stay relative and the Vite dev-server
+ *   proxy forwards /api -> the local API.
  * - `credentials: 'include'` so the httpOnly JWT cookies travel with requests.
  *   No token is ever read or written from JS/localStorage.
  * - Unwraps the backend envelope { success, data } / { success, error }.
  */
+
+/**
+ * Base origin of the Express API, e.g. https://api.example.com
+ *
+ * Set `VITE_API_URL` in the Vercel project settings. A trailing slash is
+ * tolerated and stripped so `${API_BASE}/api/...` never doubles up. If the var
+ * is unset we fall back to a same-origin relative call, which is what local
+ * development (Vite proxy) and a same-origin reverse proxy both want.
+ */
+export const API_BASE = (import.meta.env.VITE_API_URL ?? '').trim().replace(/\/+$/, '');
+
+/** Builds the absolute (or relative) URL for an API path. */
+export function apiUrl(path: string): string {
+  return `${API_BASE}/api${path}`;
+}
 
 export interface ApiErrorShape {
   code: string;
@@ -82,7 +100,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 
   const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
 
-  const res = await fetch(`/api${path}`, {
+  const res = await fetch(apiUrl(path), {
     ...rest,
     credentials: 'include',
     headers: {
@@ -138,7 +156,7 @@ export const api = {
 
 /** Streams a file response (CSV export, receipt PDF) straight to a download. */
 export async function downloadFile(path: string, filename: string, params?: Query) {
-  const res = await fetch(`/api${path}${buildQuery(params)}`, { credentials: 'include' });
+  const res = await fetch(apiUrl(`${path}${buildQuery(params)}`), { credentials: 'include' });
   if (!res.ok) {
     const text = await res.text();
     const payload = safeParse(text);
